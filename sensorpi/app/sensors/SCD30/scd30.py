@@ -49,9 +49,9 @@ class SCD30:
         return self.read()
 
     def send(self, mqtt_topic):
-        median_CO2_reading = utils.median_of_five(self.CO2_readings)
-        median_temperature_reading = utils.median_of_five(self.temperature_readings)
-        median_RH_reading = utils.median_of_five(self.RH_readings)
+        median_CO2_reading = utils.median(self.CO2_readings)
+        median_temperature_reading = utils.median(self.temperature_readings)
+        median_RH_reading = utils.median(self.RH_readings)
         # get a median to reduce the effect of outlier data
 
         self.CO2_readings = []

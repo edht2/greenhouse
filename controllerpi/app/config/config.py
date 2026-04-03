@@ -21,6 +21,6 @@ latitude = 50.747026
 
 top_window_extention_time = 60
 side_window_extention_time = 40
-# 
+# so the app can ensure the relay has had time to extend / retract fully
 
 temperature_range_play = 2

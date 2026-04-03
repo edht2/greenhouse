@@ -1,5 +1,6 @@
 from colorama import Style, Fore, Back
 from datetime import datetime, timedelta
+from app.tools.log import log
 from time import sleep
 
 print(f"{Back.GREEN}{Fore.WHITE}Initiating GreenHouse...{Style.RESET_ALL}")
@@ -22,4 +23,7 @@ from app.green_house import GreenHouse
 if __name__ == "__main__":
     green_house = GreenHouse()
     # start the greenhouse
-    green_house.start_app_loop()
+    try:
+        green_house.start_app_loop()
+    except KeyboardInterrupt:
+        log("WAIT", "greenhouse", "shutdown", "Safely stopping greenhouse, Ctrl+C again to force")

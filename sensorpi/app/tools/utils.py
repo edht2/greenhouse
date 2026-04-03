@@ -7,7 +7,7 @@ class utils:
             # runs the targeted function asyncronously - very cool
         return wrapped
 
-    def median_of_five(numbers: list) -> float:
+    def median(numbers: list) -> float:
         """
         Returns the median of five numbers in a list.
 
@@ -19,14 +19,26 @@ class utils:
             Raises ValueError if the input list does not contain exactly five numbers.
         """
 
-        if len(numbers) != 5:
-            #raise ValueError("Input list must contain exactly five numbers.")
-
-            return 0.0
-
         # Sort the list to easily find the median
         numbers.sort()
 
-        # The median is the middle element (index 2) of the sorted list
-        return numbers[2]
+        # Find the centre index
+        middle_i = (len(numbers) - 1) / 2
+        
+        if int(middle_i) != middle_i:
+            return utils.mean(numbers[int(middle_i)], numbers[int(middle_i)+1])
+
+        return numbers[middle_i]
+    
+    def mean(numbers:list) -> float:
+        """
+        Returns the mean of the inputed list.
+
+        Args:
+            numbers: A list.
+
+        Returns:
+            Mean of list. """
+            
+        return sum(numbers) / len(numbers)
 

@@ -48,8 +48,8 @@ class Bed:
          
     def send(self, mqttTopic: str) -> None:
         message = dumps({
-            "median_soil_moist" : f"{utils.median_of_five(self.soil_moisture_readings):.1f}",
-            "median_temp" : f"{utils.median_of_five(self.temperature_readings):.1f}",
+            "median_soil_moist" : f"{utils.median(self.soil_moisture_readings):.1f}",
+            "median_temp" : f"{utils.median(self.temperature_readings):.1f}",
             "status" : self.status
         })
         self.soil_moisture_readings, self.temperature_readings = [], []

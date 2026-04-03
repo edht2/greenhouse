@@ -1,15 +1,14 @@
 from app.config.config import state, temperature_range_play
+from app.tools.calculate_vpd import calculate_vpd
+from app.tools.percent_range import percent_range
 from app.tools.log import log
 from app.control.actuator import Actuator
 from app.control.solenoid import Solenoid
-from app.tools.calculate_vpd import calculate_vpd
-from app.tools.percent_range import percent_range
-from app.control.windows import Windows
-from lib.weather.client import Client as Weather_Client
+from app.control.windows import WindowGroup
+#from lib.weather.client import Client as Weather_Client
 from app.mqtt.mqtt import sub
 from app.bed import Bed
 from json import load
-from math import abs
 
 class ClimateZone:
     
@@ -35,13 +34,13 @@ class ClimateZone:
         # *********************
 
         # * Climate Solenoids *
-        self.heating_pipe = Solenoid(state["climateZones"][self.climate_zone_number-1]["heatingSolenoidRelayIndex"])
-        self.misting_pipe = Solenoid(state["climateZones"][self.climate_zone_number-1]["mistingSolenoidRelayIndex"])
+        self.heating_pipe = Solenoid(state[self.climate_zone_number-1]["heatingSolenoidRelayIndex"])
+        self.misting_pipe = Solenoid(state[self.climate_zone_number-1]["mistingSolenoidRelayIndex"])
         # *********************
         
         # ****** Windows ******
-        self.top_windows = Windows('topWindow')
-        self.side_windows = Windows('sideWindow')
+        self.top_windows = WindowGroup('topWindows', self.climate_zone_number)
+        self.side_windows = WindowGroup('sideWindows', self.climate_zone_number)
         # create new window instance
         log('OK', f'climatezone{self.climate_zone_number}', 'init', 'Window acctuators initialised')
         # *********************
@@ -73,6 +72,53 @@ class ClimateZone:
         # used for quick verification
         
         
+    def extreme_correction(self, state: dict) -> bool:
+        """ Corrects the green-house's windows, heating and misting in the event that temperature, VPD or CO2 get out of the
+        extreme ranges. This will use an 'extreme priority' based solution. Where if a value is out-side of the extreme
+        range it is completly prioritised - everything else is dropped, to be fixed even if that means it will cause another problem soon. """
+        
+        if self.temperature < state['climateZones'][self.climate_zone_number-1]['extremeTemperatureRange'][0]:
+            # the green-house is way too cold!!! Emergency mode, drop everything and do everying
+            self.top_windows.close()
+            self.side_windows.close()
+            self.misting_pipe.close()
+            self.heating_pipe.open()
+            return True
+        
+        if self.temperature > state['climateZones'][self.climate_zone_number-1]['extremeTemperatureRange'][1]:
+            # the green-house is way too hot!!!
+            self.top_windows.open()
+            self.side_windows.open()
+            self.misting_pipe.open()
+            self.heating_pipe.close()
+            return True
+        
+        if self.vapour_pressure_defecit < state['climateZones'][self.climate_zone_number-1]['extremeVPDRange'][0]:
+            # the green-house is way too damp!!!
+            self.top_windows.open()
+            self.side_windows.open()
+            self.misting_pipe.close()
+            self.heating_pipe.close()
+            return True
+        
+        if self.vapour_pressure_defecit > state['climateZones'][self.climate_zone_number-1]['extremeVPDRange'][1]:
+            # the green-house is way too dry / arid!!!
+            self.top_windows.close()
+            self.side_windows.close()
+            self.misting_pipe.open()
+            self.heating_pipe.close()
+            return True
+            
+        if self.co2_ppm < state['climateZones'][self.climate_zone_number-1]['minimumExtremeCO2ppm']:
+            # if CO2 is too low for proper operation ↓
+            self.top_windows.open()
+            self.side_windows.open()
+            # CO2 enrichment (boiler room fan)
+            return True
+        
+        return False
+    
+        
     def update(self) -> None:
     
         for bed in self.beds:
@@ -87,47 +133,8 @@ class ClimateZone:
         state = load(open("app/config/state.json"))["climateZones"]
         # reload state incase there were any changes to the ranges and targets
 
-        """ This will use an 'extreme priority' based solution. Where if a value is out-side of the extreme range it is
-        prioritised - everything else is dropped, to be fixed even if that means it will cause another problem soon. """
-        
-        if self.temperature < state['climateZones'][self.climate_zone_number-1]['extremeTemperatureRange'][0]:
-            # the green-house is way too cold!!! Emergency mode, drop everything and do everying
-            self.top_windows.close()
-            self.side_windows.close()
-            self.misting_pipe.close()
-            self.heating_pipe.open()
-            return None
-        
-        if self.temperature > state['climateZones'][self.climate_zone_number-1]['extremeTemperatureRange'][1]:
-            # the green-house is way too hot!!!
-            self.top_windows.open()
-            self.side_windows.open()
-            self.misting_pipe.open()
-            self.heating_pipe.close()
-            return None
-        
-        if self.vapour_pressure_defecit < state['climateZones'][self.climate_zone_number-1]['extremeVPDRange'][0]:
-            # the green-house is way too damp!!!
-            self.top_windows.open()
-            self.side_windows.open()
-            self.misting_pipe.close()
-            self.heating_pipe.close()
-            return None
-        
-        if self.vapour_pressure_defecit > state['climateZones'][self.climate_zone_number-1]['extremeVPDRange'][1]:
-            # the green-house is way too dry / arid!!!
-            self.top_windows.close()
-            self.side_windows.close()
-            self.misting_pipe.open()
-            self.heating_pipe.close()
-            return None
-            
-        if self.co2_ppm < state['climateZones'][self.climate_zone_number-1]['minimumExtremeCO2ppm']:
-            # if CO2 is too low for proper operation ↓
-            self.top_windows.open()
-            self.side_windows.open()
-            # CO2 enrichment (boiler room fan)
-            return None
+        if self.extreme_correction(state): return None
+        # correct any extremities
         
         normalised_temp = percent_range(state['climateZones'][self.climate_zone_number-1]['targetTemperatureRange'], self.temperature)
         normalised_vpd = percent_range(state['climateZones'][self.climate_zone_number-1]['targetVPDRange'], self.vapour_pressure_defecit)
@@ -140,6 +147,7 @@ class ClimateZone:
                 self.side_windows.open()
                 self.misting_pipe.close()
                 self.heating_pipe.close()
+                return None
                 
             if normalised_temp >= 90 and normalised_temp < 110:
                 # if the climate-zone is at 90% heat
@@ -147,9 +155,56 @@ class ClimateZone:
                 self.side_windows.open()
                 self.misting_pipe.open()
                 self.heating_pipe.close()
+                return None
+                
+            if normalised_temp <= 25 and normalised_temp > 10:
+                # if the climate zone is between 25% and 10% heat; so coldish
+                self.top_windows.close()
+                self.side_windows.close()
+                self.misting_pipe.close()
+                self.heating_pipe.close()
+                return None
+            
+            if normalised_temp <= 10 and normalised_temp > -10:
+                # if the climate zone is between 10% and -10% heat; so cold!
+                self.top_windows.close()
+                self.side_windows.close()
+                self.misting_pipe.close()
+                self.heating_pipe.open()
+                return None
                             
         else:
-            pass
+            if normalised_vpd >= 75 and normalised_vpd < 90:
+                # if the climate-zone is at 75% vpd
+                self.top_windows.close()
+                self.side_windows.close()
+                self.misting_pipe.close()
+                self.heating_pipe.close()
+                return None
+                
+            if normalised_vpd >= 90 and normalised_vpd < 110:
+                # if the climate-zone is at 90% vpd
+                self.top_windows.close()
+                self.side_windows.close()
+                self.misting_pipe.open()
+                self.heating_pipe.close()
+                return None
+                
+            if normalised_vpd <= 25 and normalised_vpd > 10:
+                # if the climate zone is between 25% and 10% vpd
+                self.top_windows.close()
+                self.side_windows.open()
+                self.misting_pipe.close()
+                self.heating_pipe.close()
+                return None
+            
+            if normalised_vpd <= 10 and normalised_vpd > -10:
+                # if the climate zone is between 10% and -10% vpd
+                self.top_windows.open()
+                self.side_windows.open()
+                self.misting_pipe.close()
+                self.heating_pipe.close()
+                return None
             
         if not self.co2_ppm < state['climateZones'][self.climate_zone_number-1]['minimumTargetCO2ppm']:
             # if the CO₂ ppm is not less than the minimum level of CO₂ there is no problem and we don't need to do anything
@@ -161,7 +216,7 @@ class ClimateZone:
         the windows and allow a breeze or diffusion to enrich the air with CO₂. In the future a CO₂ canister
         can be installed which could work regardless of the weather """
         
-        if not Weather_Client().get_current().temp - temperature_range_play < state['climateZones'][self.climate_zone_number-1]['targetTemperatureRange'][0]:
+        """ if not Weather_Client().get_current().temp - temperature_range_play < state['climateZones'][self.climate_zone_number-1]['targetTemperatureRange'][0]:
             # if outside temperature is not too cold ( with some play ) open the windows as it should get the VPD
             
-            self.open_windows()
+            self.open_windows() """

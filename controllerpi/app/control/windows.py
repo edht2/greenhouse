@@ -1,14 +1,17 @@
-from app.tools.safe_window_validator import safe_window_validator
+#from app.tools.safe_window_validator import safe_window_validator
 from app.control.actuator import Actuator
 from app.config.config import state
 
-class Windows:
+def safe_window_validator() -> bool: return True
+
+class WindowGroup:
     
-    def __init__(self, window: str) -> None:
+    def __init__(self, window: str, clid: int) -> None:
         
         self.window_type = window
+        self.climate_zone_number = clid
         
-        self.window_classes = [
+        self.acctuators = [
             Actuator([
                 actuator["actuatorRelayIndexExtend"], 
                 actuator["actuatorRelayIndexRetract"]],
@@ -22,7 +25,7 @@ class Windows:
         if safe_window_validator(self.window_type):
             # if it is safe to open the top windows
             
-            for window in self.window_classes: window.extend()
+            for window in self.acctuators: window.extend()
             # open all of the windows
             
     def close(self) -> None:
@@ -31,4 +34,4 @@ class Windows:
         if safe_window_validator(self.window_type):
             # if it is safe to open the top windows
             
-            for window in self.window_classes: window.retract()
+            for window in self.acctuators: window.retract()

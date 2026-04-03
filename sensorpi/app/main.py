@@ -1,4 +1,4 @@
-from app.config import read_frequency, mqtt_topic, climate_zone_name
+from app.config import read_frequency, mqtt_topic, climate_zone_name, send_frequency
 from app.tools.log import log
 from time import sleep
 from app.mqtt.mqtt import pub
@@ -31,8 +31,10 @@ class sensorPi:
             self.scd30_sensor.read()
             # takes a reading from the SCD30 sensor
 
-            if ticks_since_lasts_send % 5 == 0:
+            if ticks_since_lasts_send == send_frequency:
+                # enough readings have past
 
+                # send the bed data such as soil moisture on the 
                 for bed in self.beds: bed.send(f"{mqtt_topic}/bed{bed.bed_number}")
 
                 # loop through every bed sending the collected data as you go
@@ -40,8 +42,6 @@ class sensorPi:
                 self.scd30_sensor.send(f"{mqtt_topic}/SCD30")
                 # send the scd30 sensor data
                 
-                
-            
             ticks_since_lasts_send += 1  
 
             sleep(read_frequency)

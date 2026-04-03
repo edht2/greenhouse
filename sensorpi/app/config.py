@@ -7,8 +7,8 @@ climate_zone_name = f"sensorPi {climate_zone_number}"
 read_frequency = 5
 # how often the sensors are triggered
 
-send_frequency = 30 
-# how often data is sent to the controller pi
+send_frequency = 5
+# how often data is sent to the controller pi (how many readings per send)
 
 mqtt_broker_address ="mqtt.eclipseprojects.io"
 # the mqtt broker address is a cruicial part of the system allowing the sensor pi
@@ -22,6 +22,7 @@ if climate_zone_number == 1:
     chirpsensor_i2c_address = [0x10,0x11]
     chirp_sensor_cal = [[200, 530],[200, 530]]
     bed_num = [1,2]
+    
 elif climate_zone_number == 2:
     chirpsensor_i2c_address = [0x30,0x31,0x32,0x33,0x34]
     chirp_sensor_cal = [[200, 530],[200, 530],[200, 530],[200, 530],[200, 530]]

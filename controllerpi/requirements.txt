@@ -1,0 +1,6 @@
+colorama==0.4.6
+future==1.0.0
+iso8601==2.1.0
+paho-mqtt==2.1.0
+PyYAML==6.0.3
+serial==0.0.97

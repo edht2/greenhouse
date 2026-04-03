@@ -7,7 +7,11 @@ from app.tools.sensors import instantiate_sensors
 
 if __name__ == "__main__":
     print(f"{Back.GREEN}{Fore.WHITE}Initiating {climate_zone_name}...{Style.RESET_ALL}")
-
+    
+    ### TO CONFIGURE SENSORS UNCOMMENT ###
+    import utilities.switch_address_chirp
+    # import utilities.calibrate_chirp
+    ######################################
 
     """ create a dictionary for the climate zone which includes the bed id numbers, the i2c addresses for each of the 
         soil moisture sensors and the calibration data for them. """
