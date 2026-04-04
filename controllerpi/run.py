@@ -18,12 +18,28 @@ print(f"Waiting until {Fore.CYAN}{start_time.strftime('%c')}{Style.RESET_ALL}")
 # /*** Timing system ***
 
 
-from app.green_house import GreenHouse
+from app.greenhouse import Greenhouse
 
 if __name__ == "__main__":
-    green_house = GreenHouse()
+    greenhouse = Greenhouse()
     # start the greenhouse
     try:
-        green_house.start_app_loop()
-    except KeyboardInterrupt:
-        log("WAIT", "greenhouse", "shutdown", "Safely stopping greenhouse, Ctrl+C again to force")
+        # This is in a try except to catch KeyboardInterrupts
+        greenhouse.start_app_loop()
+    finally:
+        log("WAIT", "greenhouse", "shutdown", "Safely stopping greenhouse, Ctrl+C again to force stop")
+       
+        for clz in greenhouse.climate_zones:
+            
+            # *** Close all windows ***
+            clz.side_windows.close()
+            clz.top_windows.close()
+            
+            # *** Close all solenoids ***
+            for bed in clz.beds: bed.watering_solenoid.close()
+            
+            # *** Heating and misting ***
+            clz.heating_solenoid.close()
+            clz.misting_solenoid.close()
+        
+        log(True, "greenhouse", "shutdown", "Stopped greenhouse")

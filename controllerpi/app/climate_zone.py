@@ -34,8 +34,8 @@ class ClimateZone:
         # *********************
 
         # * Climate Solenoids *
-        self.heating_pipe = Solenoid(state[self.climate_zone_number-1]["heatingSolenoidRelayIndex"])
-        self.misting_pipe = Solenoid(state[self.climate_zone_number-1]["mistingSolenoidRelayIndex"])
+        self.heating_solenoid = Solenoid(state[self.climate_zone_number-1]["heatingSolenoidRelayIndex"])
+        self.misting_solenoid = Solenoid(state[self.climate_zone_number-1]["mistingSolenoidRelayIndex"])
         # *********************
         
         # ****** Windows ******
@@ -78,7 +78,7 @@ class ClimateZone:
         range it is completly prioritised - everything else is dropped, to be fixed even if that means it will cause another problem soon. """
         
         if self.temperature < state['climateZones'][self.climate_zone_number-1]['extremeTemperatureRange'][0]:
-            # the green-house is way too cold!!! Emergency mode, drop everything and do everying
+            # the greenhouse is way too cold!!! Emergency mode, drop everything and do everying
             self.top_windows.close()
             self.side_windows.close()
             self.misting_pipe.close()
@@ -86,7 +86,7 @@ class ClimateZone:
             return True
         
         if self.temperature > state['climateZones'][self.climate_zone_number-1]['extremeTemperatureRange'][1]:
-            # the green-house is way too hot!!!
+            # the greenhouse is way too hot!!!
             self.top_windows.open()
             self.side_windows.open()
             self.misting_pipe.open()
@@ -139,8 +139,8 @@ class ClimateZone:
         normalised_temp = percent_range(state['climateZones'][self.climate_zone_number-1]['targetTemperatureRange'], self.temperature)
         normalised_vpd = percent_range(state['climateZones'][self.climate_zone_number-1]['targetVPDRange'], self.vapour_pressure_defecit)
         
-        if abs(50 - normalised_temp) > abs(50 - normalised_temp):
-            # the abs(50 - normalised_xyz) makes this
+        if abs(50 - normalised_temp) > 25:
+            # if the climate temperature is >75% or <25%
             if normalised_temp >= 75 and normalised_temp < 90:
                 # if the climate-zone is at 75% heat
                 self.top_windows.open()
@@ -179,7 +179,7 @@ class ClimateZone:
                 self.top_windows.close()
                 self.side_windows.close()
                 self.misting_pipe.close()
-                self.heating_pipe.close()
+                self.heating_pipe.open()
                 return None
                 
             if normalised_vpd >= 90 and normalised_vpd < 110:

@@ -6,7 +6,7 @@ from datetime import datetime
 from time import sleep
 from os import system
 
-class GreenHouse:
+class Greenhouse:
     
     def __init__(self) -> None:
         
